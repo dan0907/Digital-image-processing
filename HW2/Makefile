@@ -1,0 +1,27 @@
+# DIP Homework Assignment 2
+# 4 4, 2018
+# Name: 沈育霖
+# ID: r06922109
+# email: danny321974345@gmail.com
+# compiled on Linux (x64) with gcc
+
+CC = gcc
+CFLAGS = -ansi -pedantic-errors -Wall -Wextra -Wstrict-prototypes -g
+LIBS = -lm
+
+.PHONY: all clean
+
+all: problem1.out  problem2.out
+	@echo "Usage: ./problem1.out"
+	@echo "Usage: ./problem2.out"
+
+%.out: %.o
+	$(CC) $(CFLAGS) -o $@ $< $(LIBS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+clean:
+	-rm -f *.o
+	-rm -f *.out
+

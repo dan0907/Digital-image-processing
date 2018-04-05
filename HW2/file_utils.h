@@ -3,8 +3,8 @@
 
 #include "defs.h"
 
-void open_and_read(uchar (*data)[COL], const char *str);
-void open_and_write(uchar (*data)[COL], const char *str);
+void open_and_read(unsigned char (*data)[COL], const char *str);
+void open_and_write(unsigned char (*data)[COL], const char *str);
 
 
 #endif

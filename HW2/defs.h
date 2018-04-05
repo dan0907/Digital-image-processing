@@ -4,6 +4,4 @@
 #define ROW 512
 #define COL 512
 
-typedef unsigned char uchar;
-
 #endif

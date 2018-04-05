@@ -6,28 +6,28 @@
 #include <math.h>
 #include <stdlib.h>
 
-void first_order_edge(uchar (*out)[COL], const uchar (*in)[COL]);
-void second_order_edge(uchar (*out)[COL], const uchar (*in)[COL]);
-void canny_edge(uchar (*out)[COL], const uchar (*in)[COL]);
-void process(uchar (*out)[COL], const uchar (*in)[COL]);
+void first_order(unsigned char (*out)[COL], const unsigned char (*in)[COL]);
+void second_order(unsigned char (*out)[COL], const unsigned char (*in)[COL]);
+void canny(unsigned char (*out)[COL], const unsigned char (*in)[COL]);
+void process(unsigned char (*out)[COL], const unsigned char (*in)[COL]);
 
 
 int main(void)
 {
-    uchar s1[ROW][COL];
-    uchar s2[ROW][COL];
-    uchar a1[ROW][COL];
-    uchar a2[ROW][COL];
-    uchar a3[ROW][COL];
-    uchar b[ROW][COL];
+    unsigned char s1[ROW][COL];
+    unsigned char s2[ROW][COL];
+    unsigned char a1[ROW][COL];
+    unsigned char a2[ROW][COL];
+    unsigned char a3[ROW][COL];
+    unsigned char b[ROW][COL];
 
     open_and_read(s1, "sample1.raw");
     open_and_read(s2, "sample2.raw");
 
-    first_order_edge(a1, (const uchar (*)[COL])s1);
-    second_order_edge(a2, (const uchar (*)[COL])s1);
-    canny_edge(a3, (const uchar (*)[COL])s1);
-    process(b, (const uchar (*)[COL])s2);
+    first_order(a1, (const unsigned char (*)[COL])s1);
+    second_order(a2, (const unsigned char (*)[COL])s1);
+    canny(a3, (const unsigned char (*)[COL])s1);
+    process(b, (const unsigned char (*)[COL])s2);
 
 
     open_and_write(a1, "a1.raw");
@@ -38,20 +38,20 @@ int main(void)
     return 0;
 }
 
-void first_order_edge(uchar (*out)[COL], const uchar (*in)[COL])
+void first_order(unsigned char (*out)[COL], const unsigned char (*in)[COL])
 {
     int side_length = 3;
     int half = side_length / 2;
     int total_size = side_length * side_length;
-    uchar *arr = malloc(sizeof(uchar) * total_size);
+    unsigned char *arr = malloc(sizeof(unsigned char) * total_size);
     int arr_i;
     int i, j, k, l;
     int z = 1;
-    uchar threshold = 41;
+    unsigned char threshold = 41;
     for (i = 0; i < COL; i++) {
         for (j = 0; j < COL; j++) {
             int gr, gc;
-            uchar tmp;
+            unsigned char tmp;
             for (k = i - half, arr_i = 0; k <= i + half; k++) {
                 int x = symmetry(k, COL);
                 for (l = j - half; l <= j + half; l++, arr_i++) {
@@ -73,14 +73,14 @@ void first_order_edge(uchar (*out)[COL], const uchar (*in)[COL])
     free(arr);
 }
 
-void second_order_edge(uchar (*out)[COL], const uchar (*in)[COL])
+void second_order(unsigned char (*out)[COL], const unsigned char (*in)[COL])
 {
 }
 
-void canny_edge(uchar (*out)[COL], const uchar (*in)[COL])
+void canny(unsigned char (*out)[COL], const unsigned char (*in)[COL])
 {
 }
 
-void process(uchar (*out)[COL], const uchar (*in)[COL])
+void process(unsigned char (*out)[COL], const unsigned char (*in)[COL])
 {
 }

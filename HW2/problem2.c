@@ -1,19 +1,19 @@
 #include "file_utils.h"
 #include <stdio.h>
 
-void edge_crispening(uchar (*out)[COL], const uchar (*in)[COL]);
-void warping(uchar (*out)[COL], const uchar (*in)[COL]);
+void edge_crisp(unsigned char (*out)[COL], const unsigned char (*in)[COL]);
+void warp(unsigned char (*out)[COL], const unsigned char (*in)[COL]);
 
 int main(void)
 {
-    uchar s3[ROW][COL];
-    uchar C[ROW][COL];
-    uchar D[ROW][COL];
+    unsigned char s3[ROW][COL];
+    unsigned char C[ROW][COL];
+    unsigned char D[ROW][COL];
 
     open_and_read(s3, "sample3.raw");
 
-    edge_crispening(C, (const uchar (*)[COL])s3);
-    warping(D, (const uchar (*)[COL])C);
+    edge_crisp(C, (const unsigned char (*)[COL])s3);
+    warp(D, (const unsigned char (*)[COL])C);
 
     open_and_write(C, "C.raw");
     open_and_write(D, "D.raw");
@@ -22,10 +22,10 @@ int main(void)
 }
 
 
-void edge_crispening(uchar (*out)[COL], const uchar (*in)[COL])
+void edge_crisp(unsigned char (*out)[COL], const unsigned char (*in)[COL])
 {
 }
 
-void warping(uchar (*out)[COL], const uchar (*in)[COL])
+void warp(unsigned char (*out)[COL], const unsigned char (*in)[COL])
 {
 }

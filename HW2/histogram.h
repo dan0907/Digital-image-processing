@@ -3,7 +3,7 @@
 
 #include "defs.h"
 
-void histogram(uchar (*data)[COL], const char *str);
-void cdf(uchar (*data)[COL], const char *str);
+void histogram(unsigned char (*data)[COL], const char *str);
+void cdf(unsigned char (*data)[COL], const char *str);
 
 #endif

@@ -9,14 +9,20 @@ CC = gcc
 CFLAGS = -ansi
 LIBS = -lm
 
+OBJ1 = problem1.o file_utils.o boundary.o histogram.o
+OBJ2 = problem2.o file_utils.o
+
 .PHONY: all clean
 
 all: problem1.out  problem2.out
 	@echo "Usage: ./problem1.out"
 	@echo "Usage: ./problem2.out"
 
-%.out: %.o
-	$(CC) $(CFLAGS) -o $@ $< $(LIBS)
+problem1.out: $(OBJ1)
+	$(CC) $(CFLAGS) -o $@ $(OBJ1) $(LIBS)
+
+problem2.out: $(OBJ2)
+	$(CC) $(CFLAGS) -o $@ $(OBJ2) $(LIBS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<

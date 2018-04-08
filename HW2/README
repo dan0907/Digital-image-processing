@@ -6,7 +6,7 @@
 # compiled on Linux (x64) with gcc
 
 CC = gcc
-CFLAGS = -ansi
+CFLAGS = -ansi -pedantic-errors -Wall -Wextra -Wstrict-prototypes -g
 LIBS = -lm
 
 OBJ1 = problem1.o file_utils.o boundary.o histogram.o

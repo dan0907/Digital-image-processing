@@ -5,5 +5,6 @@
 
 void histogram(unsigned char (*data)[COL], const char *str);
 void cdf(unsigned char (*data)[COL], const char *str);
+void histogram2(int (*data)[COL], const char *str);
 
 #endif

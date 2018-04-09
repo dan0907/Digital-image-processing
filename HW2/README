@@ -10,7 +10,7 @@ CFLAGS = -ansi -pedantic-errors -Wall -Wextra -Wstrict-prototypes -g
 LIBS = -lm
 
 OBJ1 = problem1.o file_utils.o boundary.o histogram.o
-OBJ2 = problem2.o file_utils.o
+OBJ2 = problem2.o file_utils.o boundary.o
 
 .PHONY: all clean
 

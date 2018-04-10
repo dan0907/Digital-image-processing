@@ -1,7 +1,6 @@
 #include "file_utils.h"
 #include "boundary.h"
 #include "histogram.h"
-
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>

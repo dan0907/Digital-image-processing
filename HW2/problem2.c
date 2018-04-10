@@ -68,8 +68,6 @@ void warp(unsigned char (*out)[COL], unsigned char (*in)[COL])
             }
         }
     }
-    open_and_write(tmp, "tmp.raw");
-
 
     for (j = 0; j < ROW; j++) {
         for (k = 0; k < COL; k++) {

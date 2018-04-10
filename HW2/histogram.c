@@ -4,7 +4,7 @@
 void histogram(unsigned char (*data)[COL], const char *str)
 {
     FILE *fp;
-    char buffer[50];
+    char buffer[FILENAME_MAX];
     int max_num = 0;
     int total_points = ROW * COL;
     int i, j;

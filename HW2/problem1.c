@@ -15,7 +15,7 @@ void process(unsigned char (*out)[COL], unsigned char (*in)[COL]);
 void gaussian_filter(unsigned char (*out)[COL], unsigned char (*in)[COL]);
 void gradient_gen(unsigned char (*magnitude)[COL],
         double (*orientation)[COL], unsigned char (*in)[COL]);
-void thresholding(unsigned char (*out)[COL], unsigned char (*in)[COL], 
+void thresholding(unsigned char (*out)[COL], unsigned char (*in)[COL],
         unsigned char threshold);
 void suppression(unsigned char (*out)[COL],
         unsigned char (*in)[COL], double (*orientation)[COL]);
@@ -65,14 +65,18 @@ void gradient_gen(unsigned char (*magnitude)[COL],
     int side_length = 3;
     int half = side_length / 2;
     int total_size = side_length * side_length;
-    unsigned char *arr = malloc(sizeof(unsigned char) * total_size);
+    unsigned char *arr;
     int arr_i;
     int i, j, k, l;
     int z = 1;
+    arr = malloc(sizeof(unsigned char) * total_size);
+    if (arr == NULL) {
+        perror(NULL);
+        exit(EXIT_FAILURE);
+    }
     for (i = 0; i < ROW; i++) {
         for (j = 0; j < COL; j++) {
             double gr, gc;
-            unsigned char tmp;
             for (k = i - half, arr_i = 0; k <= i + half; k++) {
                 int x = symmetry(k, ROW);
                 for (l = j - half; l <= j + half; l++, arr_i++) {
@@ -93,13 +97,13 @@ void gradient_gen(unsigned char (*magnitude)[COL],
     free(arr);
 
 }
-void thresholding(unsigned char (*out)[COL], unsigned char (*in)[COL], 
+void thresholding(unsigned char (*out)[COL], unsigned char (*in)[COL],
         unsigned char threshold)
 {
     int i, j;
     for (i = 0; i < ROW; i++) {
         for (j = 0; j < COL; j++) {
-            if (in[i][j] >= 41)
+            if (in[i][j] >= threshold)
                 out[i][j] = 255;
             else
                 out[i][j] = 0;

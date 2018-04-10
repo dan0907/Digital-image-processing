@@ -15,7 +15,7 @@ OBJ2 = problem2.o file_utils.o boundary.o
 .PHONY: all clean
 
 all: problem1.out  problem2.out
-	@echo ""
+	@echo
 	@echo "Usage: ./problem1.out"
 	@echo "(a):"
 	@echo "	First order edge: a1.raw"
@@ -23,7 +23,7 @@ all: problem1.out  problem2.out
 	@echo "	Canny edge: a3.raw"
 	@echo "(b):"
 	@echo "	b.raw"
-	@echo ""
+	@echo
 	@echo "Usage: ./problem2.out"
 	@echo "(a):"
 	@echo "	C.raw"

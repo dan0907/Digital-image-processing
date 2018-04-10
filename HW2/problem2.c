@@ -1,9 +1,10 @@
 #include "file_utils.h"
 #include "boundary.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+
+#define PI 3.1415926353
 
 void edge_crisp(unsigned char (*out)[COL], unsigned char (*in)[COL]);
 void warp(unsigned char (*out)[COL], unsigned char (*in)[COL]);
@@ -50,6 +51,40 @@ void edge_crisp(unsigned char (*out)[COL], unsigned char (*in)[COL])
 
 void warp(unsigned char (*out)[COL], unsigned char (*in)[COL])
 {
+    unsigned char tmp[ROW][COL];
+    int j, k;
+    double p, q;
+    double ratio = 16.0 / 17;
+    const int move = 255 * (1 - ratio);
+    int s = 15;
+    for (j = 0; j < ROW; j++) {
+        for (k = 0; k < COL; k++) {
+            p = 1.0 / ratio * (0.5 + j - ROW + move) + ROW - 0.5;
+            q = 1.0 / ratio * (0.5 + k - move) - 0.5;
+            if (p > ROW - 1 || q > COL - 1 || p < 0 || q < 0) {
+                tmp[j][k] = 0;
+            } else {
+                tmp[j][k] = in[(int)floor(p + 0.5)][(int)floor(q + 0.5)];
+            }
+        }
+    }
+    open_and_write(tmp, "tmp.raw");
+
+    
+    for (j = 0; j < ROW; j++) {
+        for (k = 0; k < COL; k++) {
+            p = j + cos((double)k / 511 * 6.8 * PI + 1.5 * PI) * s;
+            q = k + cos((double)j / 511 * 4.7 * PI + 1.4 * PI) * s;
+            if (p > ROW - 1 || q > COL - 1 || p < 0 || q < 0) {
+                out[j][k] = 0;
+            } else {
+                out[j][k] = tmp[(int)floor(p + 0.5)][(int)floor(q + 0.5)];
+            }
+        }
+    }
+
+
+
 }
 
 void low_pass_filter(unsigned char (*out)[COL], unsigned char (*in)[COL])

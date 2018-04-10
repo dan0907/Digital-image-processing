@@ -15,8 +15,20 @@ OBJ2 = problem2.o file_utils.o boundary.o
 .PHONY: all clean
 
 all: problem1.out  problem2.out
+	@echo ""
 	@echo "Usage: ./problem1.out"
+	@echo "(a):"
+	@echo "	First order edge: a1.raw"
+	@echo "	Second order edge: a2.raw"
+	@echo "	Canny edge: a3.raw"
+	@echo "(b):"
+	@echo "	b.raw"
+	@echo ""
 	@echo "Usage: ./problem2.out"
+	@echo "(a):"
+	@echo "	C.raw"
+	@echo "(b):"
+	@echo "	D.raw"
 
 problem1.out: $(OBJ1)
 	$(CC) $(CFLAGS) -o $@ $(OBJ1) $(LIBS)

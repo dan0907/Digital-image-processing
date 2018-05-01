@@ -4,7 +4,7 @@ LDFLAGS =
 LDLIBS = -lm
 
 TARGET = problem2
-OBJECTS = $(TARGET).o
+OBJECTS = $(TARGET).o file_utils.o boundary.o
 
 .PHONY: all clean
 

@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c89 -pedantic-errors -Wall
+CFLAGS = -std=c89 -pedantic-errors -Wall -g
 LDFLAGS =
 LDLIBS = -lm
 

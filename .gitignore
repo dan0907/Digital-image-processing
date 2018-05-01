@@ -56,3 +56,9 @@ dkms.conf
 
 # Text
 *.txt
+
+# Binary
+problem1
+problem2
+problem3
+bonus

@@ -5,25 +5,26 @@
 # Email: danny321974345@gmail.com
 # Compiled on Linux (x86_64) with gcc
 
-.PHONY: all clean run1 run2
+.PHONY: all clean run
 
 all:
+	@echo "Start compiling problem1..."
 	$(MAKE) -s -C src1
+	@echo "Done"
+	@echo "Start compiling problem2..."
 	$(MAKE) -s -C src2
-	@echo "Problem 1 usage: make run1 -f README"
-	@echo "Problem 2 usage: make run2 -f README"
+	@echo "Done"
+	@echo "Usage: make run -f README"
 
 clean:
 	$(MAKE) -s -C src1 clean
 	$(MAKE) -s -C src2 clean
 
-run1:
+run:
 	@echo "Start running problem1..."
-	@cd src1/ && ./problem1 && cd ..
+	$(MAKE) run -s -C src1
 	@echo "Done"
-
-run2:
 	@echo "Start running problem2..."
-	@cd src2/ && ./problem2 && cd ..
+	$(MAKE) run -s -C src2
 	@echo "Done"
 

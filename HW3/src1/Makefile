@@ -1,12 +1,12 @@
 CC = gcc
-CFLAGS = -std=c89 -pedantic-errors -Wall
-LDFLAGS =
+CFLAGS = -std=c89 -pedantic-errors -Wall -O3
+LDFLAGS = -O3
 LDLIBS = -lm
 
 TARGET = problem1
 OBJECTS = $(TARGET).o file_utils.o disjoint_set.o
 
-.PHONY: all clean
+.PHONY: all clean run
 
 all: $(TARGET)
 
@@ -19,4 +19,5 @@ $(TARGET): $(OBJECTS)
 clean:
 	-rm -f *.o
 	-rm -f $(TARGET)
-
+run: $(TARGET)
+	./$<

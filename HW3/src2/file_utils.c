@@ -11,13 +11,17 @@ static char file_name[FILENAME_MAX];
 void open_and_read(unsigned char (*data)[COL], const char *str)
 {
     FILE *fp;
+    size_t res;
     sprintf(file_name, INPUT_FOLDER "%s", str);
     fp = fopen(file_name, "rb");
     if (fp == NULL) {
         fprintf(stderr, "Image files are not in correct directory.\n");
         exit(EXIT_FAILURE);
     }
-    fread(data, sizeof(unsigned char), ROW * COL, fp);
+    res = fread(data, sizeof(unsigned char), ROW * COL, fp);
+    if (res != ROW * COL) {
+        fprintf(stderr, "Reading error\n");
+    }
     fclose(fp);
 }
 

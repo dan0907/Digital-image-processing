@@ -15,7 +15,6 @@ int main(void)
 {
     unsigned char data[ROW][COL];
     unsigned char K[ROW][COL];
-    unsigned char L[ROW][COL];
 
     open_and_read(data, "sample2.raw");
 
@@ -23,7 +22,6 @@ int main(void)
 
     open_and_write(K, "K.raw");
 
-    open_and_write(L, "L.raw");
 
     return 0;
 }
@@ -38,9 +36,14 @@ void laws_method(unsigned char (*out)[COL], unsigned char (*in)[COL])
     double max_value[9];
     double min_value[9];
     int flag;
-    int window_size = 41;
+    int window_size = 37;
     int half = window_size / 2;
-    double (*T)[COL][9] = malloc(sizeof(*T) * ROW);
+    double (*TE)[COL][9] = malloc(sizeof(*TE) * ROW);
+    unsigned char T[3][ROW][COL] = {{{0}}};
+    int interval_i = 0;
+    int interval_j = 0;
+    int threshold[3] = {20, 200, 200};
+    unsigned char L[ROW][COL];
     double masks[9][3][3] = {
         {
             {1.0/36, 2.0/36, 1.0/36},
@@ -114,7 +117,7 @@ void laws_method(unsigned char (*out)[COL], unsigned char (*in)[COL])
                     for (l = j - half; l <= j + half; l++) {
                         int x = symmetry(k, ROW);
                         int y = symmetry(l, COL);
-                        total += M[z][x][y] * M[z][x][y];
+                        total += pow(M[z][x][y], 2);
                     }
                 }
                 if (total > max_value[z])
@@ -130,16 +133,16 @@ void laws_method(unsigned char (*out)[COL], unsigned char (*in)[COL])
     for (z = 0; z < 9; z++) {
         for (i = 0; i < ROW; i++) {
             for (j = 0; j < COL; j++) {
-                T[i][j][z] = (t[z][i][j] - min_value[z]) * 255
+                TE[i][j][z] = (t[z][i][j] - min_value[z]) * 255
                     / (max_value[z] - min_value[z]);
             }
         }
     }
 
     /* k-means (k=3) */
-    memcpy(means[0], T[100][100], sizeof(*means) * 9);
-    memcpy(means[1], T[385][110], sizeof(*means) * 9);
-    memcpy(means[2], T[385][364], sizeof(*means) * 9);
+    memcpy(means[0], TE[100][100], sizeof(*means[0]) * 9);
+    memcpy(means[1], TE[385][110], sizeof(*means[1]) * 9);
+    memcpy(means[2], TE[385][364], sizeof(*means[2]) * 9);
 
     do {
         int num[3] = {0};
@@ -148,9 +151,9 @@ void laws_method(unsigned char (*out)[COL], unsigned char (*in)[COL])
         for (i = 0; i < ROW; i++) {
             for (j = 0; j < COL; j++) {
                 int min_group = 0;
-                double min_diff = dist(T[i][j], means[0]);
+                double min_diff = dist(TE[i][j], means[0]);
                 for (k = 1; k < 3; k++) {
-                    double tmp = dist(T[i][j], means[k]);
+                    double tmp = dist(TE[i][j], means[k]);
                     if (tmp < min_diff) {
                         min_diff = tmp;
                         min_group = k;
@@ -158,7 +161,7 @@ void laws_method(unsigned char (*out)[COL], unsigned char (*in)[COL])
                 }
                 num[min_group]++;
                 for (z = 0; z < 9; z++) {
-                    total[min_group][z] += T[i][j][z];
+                    total[min_group][z] += TE[i][j][z];
                 }
                 if (group[i][j] != min_group) {
                     flag = 1;
@@ -175,6 +178,7 @@ void laws_method(unsigned char (*out)[COL], unsigned char (*in)[COL])
 
     } while (flag);
 
+    /* label with different intensity */
     for (i = 0; i < ROW; i++) {
         for (j = 0; j < COL; j++) {
             switch(group[i][j]) {
@@ -191,20 +195,108 @@ void laws_method(unsigned char (*out)[COL], unsigned char (*in)[COL])
         }
     }
 
+    for (i = 0; i < 200; i++)
+        for (j = 0; j < 200; j++)
+            T[0][i][j] = in[i][j];
+    for (i = 0; i < 200; i++)
+        for (j = 0; j < 200; j++)
+            T[1][i][j] = in[i][j + 310];
+    for (i = 0; i < 200; i++)
+        for (j = 0; j < 200; j++)
+            T[2][i][j] = in[i + 310][j + 310];
+
+    for (z = 0; z < 3; z++) {
+        for (i = 10; i < ROW; i++) {
+            int k, l;
+            long int acc = 0;
+            long int diff;
+            int count = 0;
+            for (k = 0; i + k < 200; k++) {
+                for (l = 0; l < 200; l++) {
+                    count++;
+                    acc += pow(T[z][i + k][l] - T[z][k][l], 2);
+                    diff = acc / count;
+                    if (diff > threshold[z])
+                        goto i_end;
+                }
+            }
+            interval_i = i;
+            break;
+i_end:;
+        }
+
+        for (i = interval_i; i < ROW; i += interval_i) {
+            for (k = 0; k < interval_i && i + k < ROW; k++) {
+                for (l = 0; l < 200; l++) {
+                    T[z][i + k][l] = T[z][k][l];
+                }
+            }
+        }
+        /* COL */
+        for (j = 10; j < COL; j++) {
+            int k, l;
+            long int acc = 0;
+            long int diff;
+            int count = 0;
+            for (k = 0; k < 200; k++) {
+                for (l = 0; j + l < 200; l++) {
+                    count++;
+                    acc += pow(T[z][k][j + l] - T[z][k][l], 2);
+                    diff = acc / count;
+                    if (diff > threshold[z])
+                        goto j_end;
+                }
+            }
+            interval_j = j;
+            break;
+j_end:;
+        }
+
+        for (j = interval_j; j < COL; j += interval_j) {
+            for (k = 0; k < ROW; k++) {
+                for (l = 0; l < interval_j && j + l < COL; l++) {
+                    T[z][k][j + l] = T[z][k][l];
+                }
+            }
+        }
+        /* test */
+        /*
+        sprintf(filename, "T%d.raw", z);
+        open_and_write(T[z], filename);
+        printf("%d: %d\n", z, interval_i);
+        printf("%d: %d\n", z, interval_j);
+        */
+    }
+
+    for (i = 0; i < ROW; i++) {
+        for (j = 0; j < COL; j++) {
+            switch (group[i][j]) {
+            case 0:
+                L[i][j] = T[1][i][j];
+                break;
+            case 1:
+                L[i][j] = T[2][i][j];
+                break;
+            case 2:
+                L[i][j] = T[0][i][j];
+                break;
+            }
+        }
+    }
+    open_and_write(L, "L.raw");
+
+
     free(M);
     free(t);
     free(group);
-    free(T);
+    free(TE);
 }
 
 double dist(double *a, double *b)
 {
     int i;
     double total = 0.0;
-    int weight[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
-    weight[4] = 4;
-    weight[7] = 4;
-    weight[8] = 2;
+    int weight[9] = {1, 1, 1, 1, 10, 1, 1, 1, 1};
     for (i = 0; i < 9; i++) {
         total += pow(a[i] - b[i], 2) * weight[i];
     }

@@ -7,24 +7,19 @@
 
 .PHONY: all clean run
 
-all:
+all: ./src/problem1
+
+./src/problem1:
 	@echo "Start compiling problem1..."
-	$(MAKE) -s -C src1
-	@echo "Done"
-	@echo "Start compiling problem2..."
-	$(MAKE) -s -C src2
+	$(MAKE) -s -C src
 	@echo "Done"
 	@echo "Usage: make run -f README"
 
 clean:
-	$(MAKE) -s -C src1 clean
-	$(MAKE) -s -C src2 clean
+	$(MAKE) -s -C src clean
 
-run:
+run: ./src/problem1
 	@echo "Start running problem1..."
-	$(MAKE) run -s -C src1
-	@echo "Done"
-	@echo "Start running problem2..."
-	$(MAKE) run -s -C src2
+	$(MAKE) run -s -C src
 	@echo "Done"
 

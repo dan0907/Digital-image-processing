@@ -51,11 +51,8 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# Picture
-*.raw
-
-# Text
-*.txt
+# output
+output_images
 
 # Binary
 problem1

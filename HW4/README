@@ -1,0 +1,30 @@
+# DIP Homework Assignment 4
+# 5 22, 2018
+# Name: 沈育霖
+# ID: r06922109
+# Email: danny321974345@gmail.com
+# Compiled on Linux (x86_64) with gcc
+
+.PHONY: all clean run
+
+all:
+	@echo "Start compiling problem1..."
+	$(MAKE) -s -C src1
+	@echo "Done"
+	@echo "Start compiling problem2..."
+	$(MAKE) -s -C src2
+	@echo "Done"
+	@echo "Usage: make run -f README"
+
+clean:
+	$(MAKE) -s -C src1 clean
+	$(MAKE) -s -C src2 clean
+
+run:
+	@echo "Start running problem1..."
+	$(MAKE) run -s -C src1
+	@echo "Done"
+	@echo "Start running problem2..."
+	$(MAKE) run -s -C src2
+	@echo "Done"
+

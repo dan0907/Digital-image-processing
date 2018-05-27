@@ -1,8 +1,6 @@
 #ifndef DISJOINT_SET_H
 #define DISJOINT_SET_H
 
-struct disjoint_set;
-
 struct disjoint_set *ds_new(void);
 
 void ds_delete(struct disjoint_set *ptr);

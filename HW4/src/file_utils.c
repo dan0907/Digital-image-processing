@@ -39,7 +39,7 @@ void open_and_write(unsigned char (*data)[COL], const char *str)
     fclose(fp);
 }
 
-void open_and_read_train(unsigned char (*data)[COL_TR], const char *str)
+void open_and_read_tr(unsigned char (*data)[COL_TR], const char *str)
 {
     FILE *fp;
     size_t res;
@@ -56,7 +56,7 @@ void open_and_read_train(unsigned char (*data)[COL_TR], const char *str)
     fclose(fp);
 }
 
-void open_and_write_train(unsigned char (*data)[COL_TR], const char *str)
+void open_and_write_tr(unsigned char (*data)[COL_TR], const char *str)
 {
     FILE *fp;
     sprintf(file_name, OUTPUT_FOLDER "%s", str);

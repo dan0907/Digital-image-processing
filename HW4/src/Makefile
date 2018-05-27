@@ -4,7 +4,7 @@ LDFLAGS = -O2
 LDLIBS = -lm
 
 BINARY = problem1
-OBJECTS = main.o file_utils.o disjoint_set.o
+OBJECTS = main.o file_utils.o disjoint_set.o boundary.o
 
 .PHONY: all clean run
 
@@ -13,7 +13,7 @@ all: $(BINARY)
 $(BINARY): $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-%.o: %.c
+%.o: %.c defs.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:

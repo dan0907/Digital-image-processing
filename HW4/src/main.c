@@ -13,12 +13,26 @@ void threshold_filter_tr(unsigned char (*out)[COL_TR],
 int cmp(const void *a, const void *b);
 void process_tt(unsigned char (*in1)[COL], unsigned char (*in2)[COL]);
 void process_tr(unsigned char (*in)[COL_TR]);
+void init(unsigned char (*in1)[COL], unsigned char (*in2)[COL],
+        unsigned char (*in3)[COL_TR]);
+void cal_ccs_and_holes(void);
+void predict(void);
+
+char test_set1[] = {'H', 'i', 'g', 'x', '8'};
+char test_set2[] = {'S', 'B', '4', 'T', '7', 'I'};
+char train_set[] = {
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
+    'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b',
+    'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
+    'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3',
+    '4', '5', '6', '7', '8', '9', '!', '@', '#', '$', '%', '^', '&', '*'
+};
 
 struct feature {
-    int width;
-    int height;
-    int holes;
-    int ccs;
+    double h_w_ratio;
+    int hole_num;
+    int cc_num;
+    int euler_num;
 };
 
 struct test_s {
@@ -27,7 +41,7 @@ struct test_s {
     int w_end;
     int h_start;
     int h_end;
-    unsigned char *im;
+    unsigned char (*im)[COL];
     struct feature f;
 };
 
@@ -38,7 +52,7 @@ struct train_s {
     int w_end;
     int h_start;
     int h_end;
-    unsigned char *im;
+    unsigned char (*im)[COL_TR];
     struct feature f;
 };
 
@@ -55,12 +69,12 @@ int main(void)
 {
     unsigned char s1[ROW][COL];
     unsigned char s2[ROW][COL];
-    unsigned char s1_pre1[ROW][COL];
+    unsigned char s1_pre1[ROW][COL]; //final
     unsigned char s2_pre1[ROW][COL];
     unsigned char s2_pre2[ROW][COL];
-    unsigned char s2_pre3[ROW][COL];
+    unsigned char s2_pre3[ROW][COL]; //final
     unsigned char train[ROW_TR][COL_TR];
-    unsigned char train_pre[ROW_TR][COL_TR];
+    unsigned char train_pre[ROW_TR][COL_TR]; //final
     open_and_read(s1, "sample1.raw");
     open_and_read(s2, "sample2.raw");
     open_and_read_tr(train, "TrainingSet.raw");
@@ -81,10 +95,14 @@ int main(void)
     open_and_write(s1_pre1, "s1_box.raw");
     open_and_write(s2_pre3, "s2_box.raw");
     open_and_write_tr(train_pre, "train_box.raw");
+    init(s1_pre1, s2_pre3, train_pre);
+    cal_ccs_and_holes();
+    predict();
 
     return 0;
 }
 
+// compare function for qsort
 int cmp(const void *a, const void *b)
 {
     return *(unsigned char *)a - *(unsigned char *)b;
@@ -195,7 +213,10 @@ label1:
 label2: ;
     }
     tmp = in1;
+    // draw bounding box
     for (int x = 0; x < num; ++x) {
+        test_c[x].f.h_w_ratio = (double)(test_c[x].h_end-test_c[x].h_start)
+            / (test_c[x].w_end-test_c[x].w_start);
         if (x == 5)
             tmp = in2;
         for (j = test_c[x].w_start - 1; j <= test_c[x].w_end + 1; ++j) {
@@ -275,7 +296,10 @@ label3:
         }
 label4: ;
     }
+    // draw bounding box
     for (int x = 0; x < num; ++x) {
+        train_c[x].f.h_w_ratio = (double)(train_c[x].h_end-train_c[x].h_start)
+            / (train_c[x].w_end-train_c[x].w_start);
         for (j = train_c[x].w_start - 1; j <= train_c[x].w_end + 1; ++j) {
             in[train_c[x].h_start-1][j] = 128;
             in[train_c[x].h_end+1][j] = 128;
@@ -286,4 +310,27 @@ label4: ;
         }
     }
 
+}
+void init(unsigned char (*in1)[COL], unsigned char (*in2)[COL],
+        unsigned char (*in3)[COL_TR])
+{
+    int i;
+    for (i = 0; i < 5; ++i) {
+        test_c[i].real = test_set1[i];
+        test_c[i].im = in1;
+    }
+    for (i = 0; i < 6; ++i) {
+        test_c[i+5].real = test_set2[i];
+        test_c[i+5].im = in2;
+    }
+    for (i = 0; i < 70; ++i) {
+        train_c[i].real = train_set[i];
+        train_c[i].im = in3;
+    }
+}
+void cal_ccs_and_holes(void)
+{
+}
+void predict(void)
+{
 }

@@ -30,7 +30,7 @@ char train_set[] = {
 
 struct feature {
     double h_w_ratio;
-    int hole_num;
+    int h_num;
     int cc_num;
     int euler_num;
 };
@@ -330,6 +330,175 @@ void init(unsigned char (*in1)[COL], unsigned char (*in2)[COL],
 }
 void cal_ccs_and_holes(void)
 {
+    unsigned char label_cc[ROW_TR][COL_TR];
+    unsigned char label_h[ROW_TR][COL_TR];
+    for (int x = 0; x < 70; ++x) {
+        struct disjoint_set *cc_ds_ptr = ds_new();
+        struct disjoint_set *h_ds_ptr = ds_new();
+        int i, j;
+        /* initialize */
+        ds_add(h_ds_ptr);
+        for (i = train_c[x].h_start; i <= train_c[x].h_end; i++) {
+            for (j = train_c[x].w_start; j <= train_c[x].w_end; j++) {
+                label_cc[i][j] = train_c[x].im[i][j] ? 0 : 1;
+                label_h[i][j] = train_c[x].im[i][j] ? 1 : 0;
+            }
+        }
+
+        /* process */
+        for (i = train_c[x].h_start; i <= train_c[x].h_end; i++) {
+            for (j = train_c[x].w_start; j <= train_c[x].w_end; j++) {
+                int num = 0;
+                unsigned char tmp[4];
+                if (label_cc[i][j]) {
+                    if (j-1 >= train_c[x].w_start && label_cc[i][j-1]) {
+                        tmp[num++] = label_cc[i][j-1];
+                    }
+                    if (j-1 >= train_c[x].w_start
+                            && i-1 >= train_c[x].h_start
+                            && label_cc[i-1][j-1]) {
+                        tmp[num++] = label_cc[i-1][j-1];
+                    }
+                    if (i-1 >= train_c[x].h_start && label_cc[i-1][j]) {
+                        tmp[num++] = label_cc[i-1][j];
+                    }
+                    if (i-1 >= train_c[x].h_start
+                            && j+1 <= train_c[x].w_end
+                            && label_cc[i-1][j+1]) {
+                        tmp[num++] = label_cc[i-1][j+1];
+                    }
+                    if (num == 0) {
+                        label_cc[i][j] = ds_add(cc_ds_ptr) + 1;
+                    } else {
+                        int k;
+                        label_cc[i][j] = tmp[0];
+                        for (k = 1; k < num; k++) {
+                            ds_union(cc_ds_ptr, tmp[0] - 1, tmp[k] - 1);
+                        }
+                    }
+                } else {
+                    if (j-1 >= train_c[x].w_start && label_h[i][j-1]) {
+                        tmp[num++] = label_h[i][j-1];
+                    }
+                    if (j-1 >= train_c[x].w_start
+                            && i-1 >= train_c[x].h_start
+                            && label_h[i-1][j-1]) {
+                        tmp[num++] = label_h[i-1][j-1];
+                    }
+                    if (i-1 >= train_c[x].h_start && label_h[i-1][j]) {
+                        tmp[num++] = label_h[i-1][j];
+                    }
+                    if (i-1 >= train_c[x].h_start
+                            && j+1 <= train_c[x].w_end
+                            && label_h[i-1][j+1]) {
+                        tmp[num++] = label_h[i-1][j+1];
+                    }
+                    if (num == 0) {
+                        label_h[i][j] = ds_add(h_ds_ptr) + 1;
+                    } else {
+                        int k;
+                        label_h[i][j] = tmp[0];
+                        for (k = 1; k < num; k++) {
+                            ds_union(h_ds_ptr, tmp[0] - 1, tmp[k] - 1);
+                        }
+                    }
+                    if (i == train_c[x].h_start || i == train_c[x].h_end
+                            || j == train_c[x].w_start || j == train_c[x].w_end)
+                        ds_union(h_ds_ptr, label_h[i][j] - 1, 0);
+                }
+            }
+        }
+        train_c[x].f.cc_num = ds_get_set_num(cc_ds_ptr);
+        ds_delete(cc_ds_ptr);
+        train_c[x].f.h_num = ds_get_set_num(h_ds_ptr)-1;
+        ds_delete(h_ds_ptr);
+        printf("%c: cc_num=%d, h_num=%d\n", train_c[x].real,
+                train_c[x].f.cc_num, train_c[x].f.h_num);
+    }
+
+    for (int x = 0; x < 11; ++x) {
+        struct disjoint_set *cc_ds_ptr = ds_new();
+        struct disjoint_set *h_ds_ptr = ds_new();
+        int i, j;
+        /* initialize */
+        ds_add(h_ds_ptr);
+        for (i = test_c[x].h_start; i <= test_c[x].h_end; i++) {
+            for (j = test_c[x].w_start; j <= test_c[x].w_end; j++) {
+                label_cc[i][j] = test_c[x].im[i][j] ? 0 : 1;
+                label_h[i][j] = test_c[x].im[i][j] ? 1 : 0;
+            }
+        }
+
+        /* process */
+        for (i = test_c[x].h_start; i <= test_c[x].h_end; i++) {
+            for (j = test_c[x].w_start; j <= test_c[x].w_end; j++) {
+                int num = 0;
+                unsigned char tmp[4];
+                if (label_cc[i][j]) {
+                    if (j-1 >= test_c[x].w_start && label_cc[i][j-1]) {
+                        tmp[num++] = label_cc[i][j-1];
+                    }
+                    if (j-1 >= test_c[x].w_start
+                            && i-1 >= test_c[x].h_start
+                            && label_cc[i-1][j-1]) {
+                        tmp[num++] = label_cc[i-1][j-1];
+                    }
+                    if (i-1 >= test_c[x].h_start && label_cc[i-1][j]) {
+                        tmp[num++] = label_cc[i-1][j];
+                    }
+                    if (i-1 >= test_c[x].h_start
+                            && j+1 <= test_c[x].w_end
+                            && label_cc[i-1][j+1]) {
+                        tmp[num++] = label_cc[i-1][j+1];
+                    }
+                    if (num == 0) {
+                        label_cc[i][j] = ds_add(cc_ds_ptr) + 1;
+                    } else {
+                        int k;
+                        label_cc[i][j] = tmp[0];
+                        for (k = 1; k < num; k++) {
+                            ds_union(cc_ds_ptr, tmp[0] - 1, tmp[k] - 1);
+                        }
+                    }
+                } else {
+                    if (j-1 >= test_c[x].w_start && label_h[i][j-1]) {
+                        tmp[num++] = label_h[i][j-1];
+                    }
+                    if (j-1 >= test_c[x].w_start
+                            && i-1 >= test_c[x].h_start
+                            && label_h[i-1][j-1]) {
+                        tmp[num++] = label_h[i-1][j-1];
+                    }
+                    if (i-1 >= test_c[x].h_start && label_h[i-1][j]) {
+                        tmp[num++] = label_h[i-1][j];
+                    }
+                    if (i-1 >= test_c[x].h_start
+                            && j+1 <= test_c[x].w_end
+                            && label_h[i-1][j+1]) {
+                        tmp[num++] = label_h[i-1][j+1];
+                    }
+                    if (num == 0) {
+                        label_h[i][j] = ds_add(h_ds_ptr) + 1;
+                    } else {
+                        int k;
+                        label_h[i][j] = tmp[0];
+                        for (k = 1; k < num; k++) {
+                            ds_union(h_ds_ptr, tmp[0] - 1, tmp[k] - 1);
+                        }
+                    }
+                    if (i == test_c[x].h_start || i == test_c[x].h_end
+                            || j == test_c[x].w_start || j == test_c[x].w_end)
+                        ds_union(h_ds_ptr, label_h[i][j] - 1, 0);
+                }
+            }
+        }
+        test_c[x].f.cc_num = ds_get_set_num(cc_ds_ptr);
+        ds_delete(cc_ds_ptr);
+        test_c[x].f.h_num = ds_get_set_num(h_ds_ptr)-1;
+        ds_delete(h_ds_ptr);
+        printf("%c: cc_num=%d, h_num=%d\n", test_c[x].real,
+                test_c[x].f.cc_num, test_c[x].f.h_num);
+    }
 }
 void predict(void)
 {

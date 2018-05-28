@@ -198,13 +198,13 @@ label2: ;
     for (int x = 0; x < num; ++x) {
         if (x == 5)
             tmp = in2;
-        for (j = test_c[x].w_start; j <= test_c[x].w_end; ++j) {
-            tmp[test_c[x].h_start][j] = 128;
-            tmp[test_c[x].h_end][j] = 128;
+        for (j = test_c[x].w_start - 1; j <= test_c[x].w_end + 1; ++j) {
+            tmp[test_c[x].h_start-1][j] = 128;
+            tmp[test_c[x].h_end+1][j] = 128;
         }
-        for (i = test_c[x].h_start; i <= test_c[x].h_end; ++i) {
-            tmp[i][test_c[x].w_start] = 128;
-            tmp[i][test_c[x].w_end] = 128;
+        for (i = test_c[x].h_start - 1; i <= test_c[x].h_end + 1; ++i) {
+            tmp[i][test_c[x].w_start-1] = 128;
+            tmp[i][test_c[x].w_end+1] = 128;
         }
     }
 }
@@ -276,13 +276,13 @@ label3:
 label4: ;
     }
     for (int x = 0; x < num; ++x) {
-        for (j = train_c[x].w_start; j <= train_c[x].w_end; ++j) {
-            in[train_c[x].h_start][j] = 128;
-            in[train_c[x].h_end][j] = 128;
+        for (j = train_c[x].w_start - 1; j <= train_c[x].w_end + 1; ++j) {
+            in[train_c[x].h_start-1][j] = 128;
+            in[train_c[x].h_end+1][j] = 128;
         }
-        for (i = train_c[x].h_start; i <= train_c[x].h_end; ++i) {
-            in[i][train_c[x].w_start] = 128;
-            in[i][train_c[x].w_end] = 128;
+        for (i = train_c[x].h_start - 1; i <= train_c[x].h_end + 1; ++i) {
+            in[i][train_c[x].w_start-1] = 128;
+            in[i][train_c[x].w_end+1] = 128;
         }
     }
 

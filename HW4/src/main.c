@@ -197,7 +197,7 @@ void process_tt(unsigned char (*in1)[COL], unsigned char (*in2)[COL])
             for (j = test_c[x].w_start; j <= test_c[x].w_end; ++j) {
                 if (tmp[i][j] == 0) {
                     test_c[x].h_start = i;
-                    goto label1;
+                    goto label1; //break out of the nested loop
                 }
             }
         }
@@ -206,7 +206,7 @@ label1:
             for (j = test_c[x].w_start; j <= test_c[x].w_end; ++j) {
                 if (tmp[i][j] == 0) {
                     test_c[x].h_end = i;
-                    goto label2;
+                    goto label2; //break out of the nested loop
                 }
             }
         }
@@ -281,7 +281,7 @@ void process_tr(unsigned char (*in)[COL_TR])
             for (j = train_c[x].w_start; j <= train_c[x].w_end; ++j) {
                 if (in[i][j] == 0) {
                     train_c[x].h_start = i;
-                    goto label3;
+                    goto label3; //break out of the nested loop
                 }
             }
         }
@@ -290,7 +290,7 @@ label3:
             for (j = train_c[x].w_start; j <= train_c[x].w_end; ++j) {
                 if (in[i][j] == 0) {
                     train_c[x].h_end = i;
-                    goto label4;
+                    goto label4; //break out of the nested loop
                 }
             }
         }

@@ -53,6 +53,7 @@ dkms.conf
 
 # output
 output_images
+*.txt
 
 # Binary
 problem1

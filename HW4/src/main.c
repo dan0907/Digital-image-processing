@@ -7,25 +7,48 @@
 #include <string.h>
 #include <math.h>
 #include <stdbool.h>
+#include <float.h>
 
-#define max(a, b) ((a) > (b) ? (a) : (b))
+/* partition number */
 #define P 17
+
+#define INF DBL_MAX
+
+static inline double min(double a, double b);
+static inline double max(double a, double b);
 
 void median_filter(unsigned char (*out)[COL], unsigned char (*in)[COL]);
 void median_filter_tr(unsigned char (*out)[COL_TR],
         unsigned char (*in)[COL_TR]);
+
+/* make testing data to binary image */
 void threshold_filter(unsigned char (*out)[COL], unsigned char (*in)[COL]);
+
+/* make training data to binary image */
 void threshold_filter_tr(unsigned char (*out)[COL_TR],
         unsigned char (*in)[COL_TR]);
+
+/* compare function for qsort */
 int cmp(const void *a, const void *b);
-void process_tt(unsigned char (*in1)[COL], unsigned char (*in2)[COL]);
-void process_tr(unsigned char (*in)[COL_TR]);
+
+/* seperate testing data */
+void seperate_tt(unsigned char (*in1)[COL], unsigned char (*in2)[COL]);
+
+/* seperate training data */
+void seperate_tr(unsigned char (*in)[COL_TR]);
+
 void init(unsigned char (*in1)[COL], unsigned char (*in2)[COL],
         unsigned char (*in3)[COL_TR]);
-void cal_ccs_and_holes(void);
-void predict(void);
 void extract_feature(void);
-void cal_concave(void);
+
+/* not used */
+void cal_slope(void);
+
+/* calcute number of connected components and holes */
+void cal_ccs_and_holes(void);
+
+/* predict testing data */
+void predict(void);
 
 char test_set1[] = {'H', 'i', 'g', 'x', '8'};
 char test_set2[] = {'S', 'B', '4', 'T', '7', 'I'};
@@ -37,6 +60,7 @@ char train_set[] = {
     '4', '5', '6', '7', '8', '9', '!', '@', '#', '$', '%', '^', '&', '*'
 };
 
+/* feature structure */
 struct feature {
     double h_w_ratio;
     int h_num;
@@ -46,14 +70,15 @@ struct feature {
     double right[P];
     double up[P];
     double down[P];
-    double left_ratio[P-1];
-    double right_ratio[P-1];
-    double up_ratio[P-1];
-    double down_ratio[P-1];
+    double left_grow[P-1];
+    double right_grow[P-1];
+    double up_grow[P-1];
+    double down_grow[P-1];
     double slope[4];
 
 };
 
+/* testing character structure */
 struct test_s {
     char real;
     char predict;
@@ -67,6 +92,7 @@ struct test_s {
     struct feature f;
 };
 
+/* training character structure */
 struct train_s {
     char real;
     int w_start;
@@ -92,39 +118,33 @@ int main(void)
 {
     unsigned char s1[ROW][COL];
     unsigned char s2[ROW][COL];
-    unsigned char s1_pre1[ROW][COL]; //final
+    unsigned char s1_pre1[ROW][COL]; // final preprocessed
     unsigned char s2_pre1[ROW][COL];
     unsigned char s2_pre2[ROW][COL];
-    unsigned char s2_pre3[ROW][COL]; //final
+    unsigned char s2_pre3[ROW][COL]; // final preprocessed
     unsigned char train[ROW_TR][COL_TR];
-    unsigned char train_pre1[ROW_TR][COL_TR];
-    unsigned char train_pre2[ROW_TR][COL_TR]; //final
+    unsigned char train_pre1[ROW_TR][COL_TR]; // final preprocessed
     open_and_read(s1, "sample1.raw");
     open_and_read(s2, "sample2.raw");
     open_and_read_tr(train, "TrainingSet.raw");
-    median_filter(s2_pre1, s2);
-    open_and_write(s2_pre1, "s2_pre1.raw");
-    median_filter(s2_pre2, s2_pre1);
-    open_and_write(s2_pre2, "s2_pre2.raw");
-    threshold_filter(s2_pre3, s2_pre2);
-    open_and_write(s2_pre3, "s2_pre3.raw");
 
     threshold_filter(s1_pre1, s1);
-    open_and_write(s1_pre1, "s1_pre1.raw");
 
-    threshold_filter_tr(train_pre2, train);
-    //    median_filter_tr(train_pre2, train_pre1);
-    open_and_write_tr(train_pre2, "train_pre2.raw");
+    median_filter(s2_pre1, s2);
+    median_filter(s2_pre2, s2_pre1);
+    threshold_filter(s2_pre3, s2_pre2);
 
-    process_tt(s1_pre1, s2_pre3);
-    process_tr(train_pre2);
+    threshold_filter_tr(train_pre1, train);
+
+    seperate_tt(s1_pre1, s2_pre3);
+    seperate_tr(train_pre1);
     open_and_write(s1_pre1, "s1_box.raw");
     open_and_write(s2_pre3, "s2_box.raw");
-    open_and_write_tr(train_pre2, "train_box.raw");
-    init(s1_pre1, s2_pre3, train_pre2);
+    open_and_write_tr(train_pre1, "train_box.raw");
+    init(s1_pre1, s2_pre3, train_pre1);
     cal_ccs_and_holes();
     extract_feature();
-    cal_concave();
+    //cal_slope();
     predict();
 
     return 0;
@@ -216,7 +236,7 @@ void threshold_filter_tr(unsigned char (*out)[COL_TR],
     }
 }
 
-void process_tt(unsigned char (*in1)[COL], unsigned char (*in2)[COL])
+void seperate_tt(unsigned char (*in1)[COL], unsigned char (*in2)[COL])
 {
     int num = 0;
     int flag = 0;
@@ -252,7 +272,7 @@ void process_tt(unsigned char (*in1)[COL], unsigned char (*in2)[COL])
             for (j = test_c[x].w_start; j <= test_c[x].w_end; ++j) {
                 if (tmp[i][j] == 0) {
                     test_c[x].h_start = i;
-                    goto label1; //break out of the nested loop
+                    goto label1; // break out of the nested loop
                 }
             }
         }
@@ -261,7 +281,7 @@ label1:
             for (j = test_c[x].w_start; j <= test_c[x].w_end; ++j) {
                 if (tmp[i][j] == 0) {
                     test_c[x].h_end = i;
-                    goto label2; //break out of the nested loop
+                    goto label2; // break out of the nested loop
                 }
             }
         }
@@ -287,7 +307,7 @@ label2: ;
     }
 }
 
-void process_tr(unsigned char (*in)[COL_TR])
+void seperate_tr(unsigned char (*in)[COL_TR])
 {
     int slice_num = 0;
     int i, j;
@@ -338,7 +358,7 @@ void process_tr(unsigned char (*in)[COL_TR])
             for (j = train_c[x].w_start; j <= train_c[x].w_end; ++j) {
                 if (in[i][j] == 0) {
                     train_c[x].h_start = i;
-                    goto label3; //break out of the nested loop
+                    goto label3; // break out of the nested loop
                 }
             }
         }
@@ -347,7 +367,7 @@ label3:
             for (j = train_c[x].w_start; j <= train_c[x].w_end; ++j) {
                 if (in[i][j] == 0) {
                     train_c[x].h_end = i;
-                    goto label4; //break out of the nested loop
+                    goto label4; // break out of the nested loop
                 }
             }
         }
@@ -370,6 +390,7 @@ label4: ;
     }
 
 }
+
 void init(unsigned char (*in1)[COL], unsigned char (*in2)[COL],
         unsigned char (*in3)[COL_TR])
 {
@@ -387,10 +408,12 @@ void init(unsigned char (*in1)[COL], unsigned char (*in2)[COL],
         train_c[i].im = in3;
     }
 }
+
 void cal_ccs_and_holes(void)
 {
     unsigned char label_cc[ROW_TR][COL_TR];
     unsigned char label_h[ROW_TR][COL_TR];
+    puts("Training data:");
     for (int x = 0; x < 70; ++x) {
         struct disjoint_set *cc_ds_ptr = ds_new();
         struct disjoint_set *h_ds_ptr = ds_new();
@@ -471,10 +494,12 @@ void cal_ccs_and_holes(void)
         ds_delete(cc_ds_ptr);
         train_c[x].f.h_num = ds_get_set_num(h_ds_ptr)-1;
         ds_delete(h_ds_ptr);
-        printf("%c: cc_num=%d, h_num=%d\n", train_c[x].real,
+        printf("%c: number of connected components = %d, "
+                "number of holes = %d\n", train_c[x].real,
                 train_c[x].f.cc_num, train_c[x].f.h_num);
     }
 
+    puts("Testing data:");
     for (int x = 0; x < 11; ++x) {
         struct disjoint_set *cc_ds_ptr = ds_new();
         struct disjoint_set *h_ds_ptr = ds_new();
@@ -555,10 +580,12 @@ void cal_ccs_and_holes(void)
         ds_delete(cc_ds_ptr);
         test_c[x].f.h_num = ds_get_set_num(h_ds_ptr)-1;
         ds_delete(h_ds_ptr);
-        printf("%c: cc_num=%d, h_num=%d\n", test_c[x].real,
+        printf("%c: number of connected components = %d, "
+                "number of holes = %d\n", test_c[x].real,
                 test_c[x].f.cc_num, test_c[x].f.h_num);
     }
 }
+
 void extract_feature(void)
 {
     int i, j;
@@ -571,7 +598,7 @@ void extract_feature(void)
         for (int k = 1; k <= P; ++k) {
             int cnt;
             acc_l = acc_r = acc_u = acc_d = 0;
-            //left
+            // left
             start = train_c[x].h_start+height*(k-1)/P;
             end = train_c[x].h_start+height*k/P;
             if (start == end)
@@ -586,7 +613,7 @@ void extract_feature(void)
             }
             train_c[x].f.left[k-1] = (double)acc_l / width / (end-start);
 
-            //right
+            // right
             start = train_c[x].h_start+height*(k-1)/P;
             end = train_c[x].h_start+height*k/P;
             if (start == end)
@@ -601,7 +628,7 @@ void extract_feature(void)
             }
             train_c[x].f.right[k-1] = (double)acc_r / width / (end-start);
 
-            //up
+            // up
             start = train_c[x].w_start+width*(k-1)/P;
             end = train_c[x].w_start+width*k/P;
             if (start == end)
@@ -616,7 +643,7 @@ void extract_feature(void)
             }
             train_c[x].f.up[k-1] = (double)acc_u / height / (end-start);
 
-            //down
+            // down
             start = train_c[x].w_start+width*(k-1)/P;
             end = train_c[x].w_start+width*k/P;
             if (start == end)
@@ -631,29 +658,31 @@ void extract_feature(void)
             }
             train_c[x].f.down[k-1] = (double)acc_d / height / (end-start);
             if (k != 1) {
-                train_c[x].f.left_ratio[k-2] = train_c[x].f.left[k-1]
+                train_c[x].f.left_grow[k-2] = train_c[x].f.left[k-1]
                     - train_c[x].f.left[k-2];
-                train_c[x].f.right_ratio[k-2] = train_c[x].f.right[k-1]
+                train_c[x].f.right_grow[k-2] = train_c[x].f.right[k-1]
                     - train_c[x].f.right[k-2];
-                train_c[x].f.up_ratio[k-2] = train_c[x].f.up[k-1]
+                train_c[x].f.up_grow[k-2] = train_c[x].f.up[k-1]
                     - train_c[x].f.up[k-2];
-                train_c[x].f.down_ratio[k-2] = train_c[x].f.down[k-1]
+                train_c[x].f.down_grow[k-2] = train_c[x].f.down[k-1]
                     - train_c[x].f.down[k-2];
             }
         }
-        printf("%c:\n", train_c[x].real);
-        for (i = 0; i < P; ++i)
-            printf(" %.2f", train_c[x].f.left[i]);
-        puts("");
-        for (i = 0; i < P; ++i)
-            printf(" %.2f", train_c[x].f.right[i]);
-        puts("");
-        for (i = 0; i < P; ++i)
-            printf(" %.2f", train_c[x].f.up[i]);
-        puts("");
-        for (i = 0; i < P; ++i)
-            printf(" %.2f", train_c[x].f.down[i]);
-        puts("");
+        /*
+           printf("%c:\n", train_c[x].real);
+           for (i = 0; i < P; ++i)
+           printf(" %.2f", train_c[x].f.left[i]);
+           puts("");
+           for (i = 0; i < P; ++i)
+           printf(" %.2f", train_c[x].f.right[i]);
+           puts("");
+           for (i = 0; i < P; ++i)
+           printf(" %.2f", train_c[x].f.up[i]);
+           puts("");
+           for (i = 0; i < P; ++i)
+           printf(" %.2f", train_c[x].f.down[i]);
+           puts("");
+         */
     }
 
     for (int x = 0; x < 11; ++x) {
@@ -662,7 +691,7 @@ void extract_feature(void)
         for (int k = 1; k <= P; ++k) {
             int cnt;
             acc_l = acc_r = acc_u = acc_d = 0;
-            //left
+            // left
             start = test_c[x].h_start+height*(k-1)/P;
             end = test_c[x].h_start+height*k/P;
             if (start == end)
@@ -677,7 +706,7 @@ void extract_feature(void)
             }
             test_c[x].f.left[k-1] = (double)acc_l / width / (end-start);
 
-            //right
+            // right
             start = test_c[x].h_start+height*(k-1)/P;
             end = test_c[x].h_start+height*k/P;
             if (start == end)
@@ -692,7 +721,7 @@ void extract_feature(void)
             }
             test_c[x].f.right[k-1] = (double)acc_r / width / (end-start);
 
-            //up
+            // up
             start = test_c[x].w_start+width*(k-1)/P;
             end = test_c[x].w_start+width*k/P;
             if (start == end)
@@ -707,7 +736,7 @@ void extract_feature(void)
             }
             test_c[x].f.up[k-1] = (double)acc_u / height / (end-start);
 
-            //down
+            // down
             start = test_c[x].w_start+width*(k-1)/P;
             end = test_c[x].w_start+width*k/P;
             if (start == end)
@@ -724,106 +753,243 @@ void extract_feature(void)
 
 
             if (k != 1) {
-                test_c[x].f.left_ratio[k-2] = test_c[x].f.left[k-1]
+                test_c[x].f.left_grow[k-2] = test_c[x].f.left[k-1]
                     - test_c[x].f.left[k-2];
-                test_c[x].f.right_ratio[k-2] = test_c[x].f.right[k-1]
+                test_c[x].f.right_grow[k-2] = test_c[x].f.right[k-1]
                     - test_c[x].f.right[k-2];
-                test_c[x].f.up_ratio[k-2] = test_c[x].f.up[k-1]
+                test_c[x].f.up_grow[k-2] = test_c[x].f.up[k-1]
                     - test_c[x].f.up[k-2];
-                test_c[x].f.down_ratio[k-2] = test_c[x].f.down[k-1]
+                test_c[x].f.down_grow[k-2] = test_c[x].f.down[k-1]
                     - test_c[x].f.down[k-2];
             }
         }
-        printf("%c:\n", test_c[x].real);
-        for (i = 0; i < P; ++i)
-            printf(" %.2f", test_c[x].f.left[i]);
-        puts("");
-        for (i = 0; i < P; ++i)
-            printf(" %.2f", test_c[x].f.right[i]);
-        puts("");
-        for (i = 0; i < P; ++i)
-            printf(" %.2f", test_c[x].f.up[i]);
-        puts("");
-        for (i = 0; i < P; ++i)
-            printf(" %.2f", test_c[x].f.down[i]);
-        puts("");
+        /*
+           printf("%c:\n", test_c[x].real);
+           for (i = 0; i < P; ++i)
+           printf(" %.2f", test_c[x].f.left[i]);
+           puts("");
+           for (i = 0; i < P; ++i)
+           printf(" %.2f", test_c[x].f.right[i]);
+           puts("");
+           for (i = 0; i < P; ++i)
+           printf(" %.2f", test_c[x].f.up[i]);
+           puts("");
+           for (i = 0; i < P; ++i)
+           printf(" %.2f", test_c[x].f.down[i]);
+           puts("");
+         */
     }
 }
 
 void predict(void)
 {
     int x, y;
-    int i, j;
+    int i;
     int w = 2;
+    puts("Predicting...");
     for (x = 0; x < 11; ++x) {
-        double min = 999999.0;
+        double min_tmp = INF;
         for (y = 0; y < 70; ++y) {
             double acc = 0.0;
+            w = 1;
             if (test_c[x].f.cc_num != train_c[y].f.cc_num)
                 continue;
             for (i = 0; i < P; ++i) {
-                if (i > P/2)
-                    w = 3.5;
-                else
-                    w = 1;
                 acc += w*fabs(test_c[x].f.left[i] - train_c[y].f.left[i]);
             }
-            for (i = 0; i < P; ++i)
-                acc += fabs(test_c[x].f.right[i] - train_c[y].f.right[i]);
-            for (i = 0; i < P; ++i)
-                acc += 2*fabs(test_c[x].f.up[i] - train_c[y].f.up[i]);
             for (i = 0; i < P; ++i) {
-                if (i > P*2/3)
-                    w = 1.5;
-                else
-                    w = 1;
+                acc += w*fabs(test_c[x].f.right[i] - train_c[y].f.right[i]);
+            }
+            for (i = 0; i < P; ++i) {
+                acc += w*fabs(test_c[x].f.up[i] - train_c[y].f.up[i]);
+            }
+            for (i = 0; i < P; ++i) {
                 acc += w*fabs(test_c[x].f.down[i] - train_c[y].f.down[i]);
             }
 
+            w = 3;
+            // left
             for (i = 0; i < P-1; ++i) {
-                if (test_c[x].f.cc_num == 2 && i > P/2) {
-                    w = 100;
-                } else if (i > P/2) {
-                    w = 4;
-                } else {
-                    w = 2;
+                double temp_l = 0.0;
+                double temp_r = 0.0;
+                double temp_m = 0.0;
+                if (i < P/2)
+                    w = 5;
+                if (test_c[x].f.cc_num == 2 && i > P/2)
+                    w = 1000;
+                // left test
+                if (i != 0) {
+                    if (i != 1)
+                        temp_l = max(temp_l, w*fabs(test_c[x].f.left_grow[i-1]
+                                    - train_c[y].f.left_grow[i-2]));
+                    temp_l = max(temp_l, w*fabs(test_c[x].f.left_grow[i]
+                                - train_c[y].f.left_grow[i-1]));
+                    if (i != P-2)
+                        temp_l = max(temp_l, w*fabs(test_c[x].f.left_grow[i+1]
+                                    - train_c[y].f.left_grow[i]));
                 }
-                acc += w*fabs(test_c[x].f.left_ratio[i]
-                        - train_c[y].f.left_ratio[i]);
+                // right test
+                if (i != P-2) {
+                    if (i != 0)
+                        temp_r = max(temp_r, w*fabs(test_c[x].f.left_grow[i-1]
+                                    - train_c[y].f.left_grow[i]));
+                    temp_r = max(temp_r, w*fabs(test_c[x].f.left_grow[i]
+                                - train_c[y].f.left_grow[i+1]));
+                    if (i != P-3)
+                        temp_r = max(temp_r, w*fabs(test_c[x].f.left_grow[i+1]
+                                    - train_c[y].f.left_grow[i+2]));
+                }
+                // mid test
+                if (i != 0)
+                    temp_m = max(temp_m, w*fabs(test_c[x].f.left_grow[i-1]
+                                - train_c[y].f.left_grow[i-1]));
+                temp_m = max(temp_m, w*fabs(test_c[x].f.left_grow[i]
+                            - train_c[y].f.left_grow[i]));
+                if (i != P-2)
+                    temp_m = max(temp_m, w*fabs(test_c[x].f.left_grow[i+1]
+                                - train_c[y].f.left_grow[i+1]));
+                acc += min(temp_m, min(temp_r, temp_l));
             }
+            // right
+            w = 3;
             for (i = 0; i < P-1; ++i) {
-                if (test_c[x].f.cc_num == 2 && i > P/2) {
-                    w = 100;
-                } else if (i > P/2) {
-                    w = 4;
-                } else {
-                    w = 2;
+                double temp_l = 0.0;
+                double temp_r = 0.0;
+                double temp_m = 0.0;
+                if (test_c[x].f.cc_num == 2 && i > P/2)
+                    w = 1000;
+                // left test
+                if (i != 0) {
+                    if (i != 1)
+                        temp_l = max(temp_l, w*fabs(test_c[x].f.right_grow[i-1]
+                                    - train_c[y].f.right_grow[i-2]));
+                    temp_l = max(temp_l, w*fabs(test_c[x].f.right_grow[i]
+                                - train_c[y].f.right_grow[i-1]));
+                    if (i != P-2)
+                        temp_l = max(temp_l, w*fabs(test_c[x].f.right_grow[i+1]
+                                    - train_c[y].f.right_grow[i]));
                 }
-                acc += w*fabs(test_c[x].f.right_ratio[i]
-                        - train_c[y].f.right_ratio[i]);
+                // right test
+                if (i != P-2) {
+                    if (i != 0)
+                        temp_r = max(temp_r, w*fabs(test_c[x].f.right_grow[i-1]
+                                    - train_c[y].f.right_grow[i]));
+                    temp_r = max(temp_r, w*fabs(test_c[x].f.right_grow[i]
+                                - train_c[y].f.right_grow[i+1]));
+                    if (i != P-3)
+                        temp_r = max(temp_r, w*fabs(test_c[x].f.right_grow[i+1]
+                                    - train_c[y].f.right_grow[i+2]));
+                }
+                // mid test
+                if (i != 0)
+                    temp_m = max(temp_m, w*fabs(test_c[x].f.right_grow[i-1]
+                                - train_c[y].f.right_grow[i-1]));
+                temp_m = max(temp_m, w*fabs(test_c[x].f.right_grow[i]
+                            - train_c[y].f.right_grow[i]));
+                if (i != P-2)
+                    temp_m = max(temp_m, w*fabs(test_c[x].f.right_grow[i+1]
+                                - train_c[y].f.right_grow[i+1]));
+                acc += min(temp_m, min(temp_r, temp_l));
             }
-            for (i = 0; i < P-1; ++i)
-                acc += 3*fabs(test_c[x].f.up_ratio[i]
-                        - train_c[y].f.up_ratio[i]);
-            for (i = 0; i < P-1; ++i)
-                acc += 2*fabs(test_c[x].f.down_ratio[i]
-                        - train_c[y].f.down_ratio[i]);
+            // up
+            w = 3;
+            for (i = 0; i < P-1; ++i) {
+                double temp_l = 0.0;
+                double temp_r = 0.0;
+                double temp_m = 0.0;
+                if (i < P/2)
+                    w = 5;
+                // left test
+                if (i != 0) {
+                    if (i != 1)
+                        temp_l = max(temp_l, w*fabs(test_c[x].f.up_grow[i-1]
+                                    - train_c[y].f.up_grow[i-2]));
+                    temp_l = max(temp_l, w*fabs(test_c[x].f.up_grow[i]
+                                - train_c[y].f.up_grow[i-1]));
+                    if (i != P-2)
+                        temp_l = max(temp_l, w*fabs(test_c[x].f.up_grow[i+1]
+                                    - train_c[y].f.up_grow[i]));
+                }
+                // right test
+                if (i != P-2) {
+                    if (i != 0)
+                        temp_r = max(temp_r, w*fabs(test_c[x].f.up_grow[i-1]
+                                    - train_c[y].f.up_grow[i]));
+                    temp_r = max(temp_r, w*fabs(test_c[x].f.up_grow[i]
+                                - train_c[y].f.up_grow[i+1]));
+                    if (i != P-3)
+                        temp_r = max(temp_r, w*fabs(test_c[x].f.up_grow[i+1]
+                                    - train_c[y].f.up_grow[i+2]));
+                }
+                // mid test
+                if (i != 0)
+                    temp_m = max(temp_m, w*fabs(test_c[x].f.up_grow[i-1]
+                                - train_c[y].f.up_grow[i-1]));
+                temp_m = max(temp_m, w*fabs(test_c[x].f.up_grow[i]
+                            - train_c[y].f.up_grow[i]));
+                if (i != P-2)
+                    temp_m = max(temp_m, w*fabs(test_c[x].f.up_grow[i+1]
+                                - train_c[y].f.up_grow[i+1]));
+                acc += min(temp_m, min(temp_r, temp_l));
+            }
+            // down
+            w = 3;
+            for (i = 0; i < P-1; ++i) {
+                double temp_l = 0.0;
+                double temp_r = 0.0;
+                double temp_m = 0.0;
+                // left test
+                if (i != 0) {
+                    if (i != 1)
+                        temp_l = max(temp_l, w*fabs(test_c[x].f.down_grow[i-1]
+                                    - train_c[y].f.down_grow[i-2]));
+                    temp_l = max(temp_l, w*fabs(test_c[x].f.down_grow[i]
+                                - train_c[y].f.down_grow[i-1]));
+                    if (i != P-2)
+                        temp_l = max(temp_l, w*fabs(test_c[x].f.down_grow[i+1]
+                                    - train_c[y].f.down_grow[i]));
+                }
+                // right test
+                if (i != P-2) {
+                    if (i != 0)
+                        temp_r = max(temp_r, w*fabs(test_c[x].f.down_grow[i-1]
+                                    - train_c[y].f.down_grow[i]));
+                    temp_r = max(temp_r, w*fabs(test_c[x].f.down_grow[i]
+                                - train_c[y].f.down_grow[i+1]));
+                    if (i != P-3)
+                        temp_r = max(temp_r, w*fabs(test_c[x].f.down_grow[i+1]
+                                    - train_c[y].f.down_grow[i+2]));
+                }
+                // mid test
+                if (i != 0)
+                    temp_m = max(temp_m, w*fabs(test_c[x].f.down_grow[i-1]
+                                - train_c[y].f.down_grow[i-1]));
+                temp_m = max(temp_m, w*fabs(test_c[x].f.down_grow[i]
+                            - train_c[y].f.down_grow[i]));
+                if (i != P-2)
+                    temp_m = max(temp_m, w*fabs(test_c[x].f.down_grow[i+1]
+                                - train_c[y].f.down_grow[i+1]));
+                acc += min(temp_m, min(temp_r, temp_l));
+            }
 
-            acc += 1.5*fabs(test_c[x].f.h_w_ratio - train_c[y].f.h_w_ratio);
+            acc += 10*fabs(test_c[x].f.h_w_ratio - train_c[y].f.h_w_ratio);
 
-            for (i = 0; i < 4; ++i)
-                acc += 10*fabs(test_c[x].f.slope[i] - train_c[y].f.slope[i]);
+            /*
+               for (i = 0; i < 4; ++i)
+               acc += 10*fabs(test_c[x].f.slope[i] - train_c[y].f.slope[i]);
+             */
 
-            if (acc < min) {
-                min = acc;
+            if (acc < min_tmp) {
+                min_tmp = acc;
                 test_c[x].predict = train_c[y].real;
             }
         }
-        printf("%c: %c\n", test_c[x].real, test_c[x].predict);
+        printf("Expected: %c, Predicted: %c\n",
+                test_c[x].real, test_c[x].predict);
     }
 }
 
-void cal_concave(void)
+void cal_slope(void)
 {
     int i;
     double tmp;
@@ -868,4 +1034,14 @@ void cal_concave(void)
         test_c[x].f.slope[2] = max_u;
         test_c[x].f.slope[3] = max_d;
     }
+}
+
+static inline double min(double a, double b)
+{
+    return ((a) < (b) ? (a) : (b));
+}
+
+static inline double max(double a, double b)
+{
+    return ((a) > (b) ? (a) : (b));
 }

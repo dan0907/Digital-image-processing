@@ -5,8 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
+
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define P 13
 
 void median_filter(unsigned char (*out)[COL], unsigned char (*in)[COL]);
+void median_filter_tr(unsigned char (*out)[COL_TR],
+        unsigned char (*in)[COL_TR]);
 void threshold_filter(unsigned char (*out)[COL], unsigned char (*in)[COL]);
 void threshold_filter_tr(unsigned char (*out)[COL_TR],
         unsigned char (*in)[COL_TR]);
@@ -17,6 +23,7 @@ void init(unsigned char (*in1)[COL], unsigned char (*in2)[COL],
         unsigned char (*in3)[COL_TR]);
 void cal_ccs_and_holes(void);
 void predict(void);
+void extract_feature(void);
 
 char test_set1[] = {'H', 'i', 'g', 'x', '8'};
 char test_set2[] = {'S', 'B', '4', 'T', '7', 'I'};
@@ -33,25 +40,37 @@ struct feature {
     int h_num;
     int cc_num;
     int euler_num;
+    double left[P];
+    double right[P];
+    double up[P];
+    double down[P];
+    double left_ratio[P-1];
+    double right_ratio[P-1];
+    double up_ratio[P-1];
+    double down_ratio[P-1];
 };
 
 struct test_s {
-    char real;
-    int w_start;
-    int w_end;
-    int h_start;
-    int h_end;
-    unsigned char (*im)[COL];
-    struct feature f;
-};
-
-struct train_s {
     char real;
     char predict;
     int w_start;
     int w_end;
     int h_start;
     int h_end;
+    int width;
+    int height;
+    unsigned char (*im)[COL];
+    struct feature f;
+};
+
+struct train_s {
+    char real;
+    int w_start;
+    int w_end;
+    int h_start;
+    int h_end;
+    int width;
+    int height;
     unsigned char (*im)[COL_TR];
     struct feature f;
 };
@@ -74,7 +93,8 @@ int main(void)
     unsigned char s2_pre2[ROW][COL];
     unsigned char s2_pre3[ROW][COL]; //final
     unsigned char train[ROW_TR][COL_TR];
-    unsigned char train_pre[ROW_TR][COL_TR]; //final
+    unsigned char train_pre1[ROW_TR][COL_TR];
+    unsigned char train_pre2[ROW_TR][COL_TR]; //final
     open_and_read(s1, "sample1.raw");
     open_and_read(s2, "sample2.raw");
     open_and_read_tr(train, "TrainingSet.raw");
@@ -87,16 +107,19 @@ int main(void)
 
     threshold_filter(s1_pre1, s1);
     open_and_write(s1_pre1, "s1_pre1.raw");
-    threshold_filter_tr(train_pre, train);
-    open_and_write_tr(train_pre, "train_pre.raw");
+
+    threshold_filter_tr(train_pre2, train);
+    //    median_filter_tr(train_pre2, train_pre1);
+    open_and_write_tr(train_pre2, "train_pre2.raw");
 
     process_tt(s1_pre1, s2_pre3);
-    process_tr(train_pre);
+    process_tr(train_pre2);
     open_and_write(s1_pre1, "s1_box.raw");
     open_and_write(s2_pre3, "s2_box.raw");
-    open_and_write_tr(train_pre, "train_box.raw");
-    init(s1_pre1, s2_pre3, train_pre);
+    open_and_write_tr(train_pre2, "train_box.raw");
+    init(s1_pre1, s2_pre3, train_pre2);
     cal_ccs_and_holes();
+    extract_feature();
     predict();
 
     return 0;
@@ -134,6 +157,33 @@ void median_filter(unsigned char (*out)[COL], unsigned char (*in)[COL])
     free(arr);
 }
 
+void median_filter_tr(unsigned char (*out)[COL_TR],
+        unsigned char (*in)[COL_TR])
+{
+    int side_length = 3;
+    int half = side_length / 2;
+    int total_size = side_length * side_length;
+    unsigned char *arr = malloc(sizeof(*arr) * total_size);
+    int arr_i;
+    int median = total_size / 2;
+
+    int i, j, k, l;
+    for (i = 0; i < ROW_TR; i++) {
+        for (j = 0; j < COL_TR; j++) {
+            for (k = i - half, arr_i = 0; k <= i + half; k++) {
+                int x = symmetry(k, ROW_TR);
+                for (l = j - half; l <= j + half; l++, arr_i++) {
+                    int y = symmetry(l, COL_TR);
+                    arr[arr_i] = in[x][y];
+                }
+            }
+            qsort(arr, total_size, sizeof(*arr), cmp);
+            out[i][j] = arr[median];
+        }
+    }
+    free(arr);
+}
+
 void threshold_filter(unsigned char (*out)[COL], unsigned char (*in)[COL])
 {
     int i, j;
@@ -153,7 +203,7 @@ void threshold_filter_tr(unsigned char (*out)[COL_TR],
     int i, j;
     for (i = 0; i < ROW_TR; i++) {
         for (j = 0; j < COL_TR; j++) {
-            if (in[i][j] > 200)
+            if (in[i][j] > 170)
                 out[i][j] = 255;
             else
                 out[i][j] = 0;
@@ -217,6 +267,8 @@ label2: ;
     for (int x = 0; x < num; ++x) {
         test_c[x].f.h_w_ratio = (double)(test_c[x].h_end-test_c[x].h_start)
             / (test_c[x].w_end-test_c[x].w_start);
+        test_c[x].width = test_c[x].w_end-test_c[x].w_start;
+        test_c[x].height = test_c[x].h_end-test_c[x].h_start;
         if (x == 5)
             tmp = in2;
         for (j = test_c[x].w_start - 1; j <= test_c[x].w_end + 1; ++j) {
@@ -300,6 +352,8 @@ label4: ;
     for (int x = 0; x < num; ++x) {
         train_c[x].f.h_w_ratio = (double)(train_c[x].h_end-train_c[x].h_start)
             / (train_c[x].w_end-train_c[x].w_start);
+        train_c[x].width = train_c[x].w_end-train_c[x].w_start;
+        train_c[x].height = train_c[x].h_end-train_c[x].h_start;
         for (j = train_c[x].w_start - 1; j <= train_c[x].w_end + 1; ++j) {
             in[train_c[x].h_start-1][j] = 128;
             in[train_c[x].h_end+1][j] = 128;
@@ -500,6 +554,218 @@ void cal_ccs_and_holes(void)
                 test_c[x].f.cc_num, test_c[x].f.h_num);
     }
 }
+void extract_feature(void)
+{
+    int i, j;
+    int max_l, max_r, max_u, max_d;
+    int start, end;
+    int width, height;
+    for (int x = 0; x < 70; ++x) {
+        width = train_c[x].width;
+        height = train_c[x].height;
+        for (int k = 1; k <= P; ++k) {
+            int cnt;
+            max_l = max_r = max_u = max_d = 0;
+            //left
+            start = train_c[x].h_start+height*(k-1)/P;
+            end = train_c[x].h_start+height*k/P;
+            for (i = start; i < end; ++i) {
+                for (j = train_c[x].w_start, cnt = 0;
+                        j <= train_c[x].w_end; ++j, ++cnt) {
+                    if (train_c[x].im[i][j] == 0)
+                        break;
+                }
+                max_l = max(cnt, max_l);
+            }
+            train_c[x].f.left[k-1] = (double)max_l / width;
+
+            //right
+            start = train_c[x].h_start+height*(k-1)/P;
+            end = train_c[x].h_start+height*k/P;
+            for (i = start; i < end; ++i) {
+                for (j = train_c[x].w_end, cnt = 0;
+                        j >= train_c[x].w_start; --j, ++cnt) {
+                    if (train_c[x].im[i][j] == 0)
+                        break;
+                }
+                max_r = max(cnt, max_r);
+            }
+            train_c[x].f.right[k-1] = (double)max_r / width;
+
+            //up
+            start = train_c[x].w_start+width*(k-1)/P;
+            end = train_c[x].w_start+width*k/P;
+            for (j = start; j < end; ++j) {
+                for (i = train_c[x].h_start, cnt = 0;
+                        i <= train_c[x].h_end; ++i, ++cnt) {
+                    if (train_c[x].im[i][j] == 0)
+                        break;
+                }
+                max_u = max(cnt, max_u);
+            }
+            train_c[x].f.up[k-1] = (double)max_u / height;
+
+            //down
+            start = train_c[x].w_start+width*(k-1)/P;
+            end = train_c[x].w_start+width*k/P;
+            for (j = start; j < end; ++j) {
+                for (i = train_c[x].h_end, cnt = 0;
+                        i >= train_c[x].h_start; --i, ++cnt) {
+                    if (train_c[x].im[i][j] == 0)
+                        break;
+                }
+                max_d = max(cnt, max_d);
+            }
+            train_c[x].f.down[k-1] = (double)max_d / height;
+            if (k != 1) {
+                train_c[x].f.left_ratio[k-2] = train_c[x].f.left[k-1]
+                    - train_c[x].f.left[k-2];
+                train_c[x].f.right_ratio[k-2] = train_c[x].f.right[k-1]
+                    - train_c[x].f.right[k-2];
+                train_c[x].f.up_ratio[k-2] = train_c[x].f.up[k-1]
+                    - train_c[x].f.up[k-2];
+                train_c[x].f.down_ratio[k-2] = train_c[x].f.down[k-1]
+                    - train_c[x].f.down[k-2];
+            }
+        }
+        printf("%c:\n", train_c[x].real);
+        for (i = 0; i < P; ++i)
+            printf(" %.2f", train_c[x].f.left[i]);
+        puts("");
+        for (i = 0; i < P; ++i)
+            printf(" %.2f", train_c[x].f.right[i]);
+        puts("");
+        for (i = 0; i < P; ++i)
+            printf(" %.2f", train_c[x].f.up[i]);
+        puts("");
+        for (i = 0; i < P; ++i)
+            printf(" %.2f", train_c[x].f.down[i]);
+        puts("");
+    }
+
+    for (int x = 0; x < 11; ++x) {
+        width = test_c[x].width;
+        height = test_c[x].height;
+        for (int k = 1; k <= P; ++k) {
+            int cnt;
+            max_l = max_r = max_u = max_d = 0;
+            //left
+            start = test_c[x].h_start+height*(k-1)/P;
+            end = test_c[x].h_start+height*k/P;
+            for (i = start; i < end; ++i) {
+                for (j = test_c[x].w_start, cnt = 0;
+                        j <= test_c[x].w_end; ++j, ++cnt) {
+                    if (test_c[x].im[i][j] == 0)
+                        break;
+                }
+                max_l = max(cnt, max_l);
+            }
+            test_c[x].f.left[k-1] = (double)max_l / width;
+
+            //right
+            start = test_c[x].h_start+height*(k-1)/P;
+            end = test_c[x].h_start+height*k/P;
+            for (i = start; i < end; ++i) {
+                for (j = test_c[x].w_end, cnt = 0;
+                        j >= test_c[x].w_start; --j, ++cnt) {
+                    if (test_c[x].im[i][j] == 0)
+                        break;
+                }
+                max_r = max(cnt, max_r);
+            }
+            test_c[x].f.right[k-1] = (double)max_r / width;
+
+            //up
+            start = test_c[x].w_start+width*(k-1)/P;
+            end = test_c[x].w_start+width*k/P;
+            for (j = start; j < end; ++j) {
+                for (i = test_c[x].h_start, cnt = 0;
+                        i <= test_c[x].h_end; ++i, ++cnt) {
+                    if (test_c[x].im[i][j] == 0)
+                        break;
+                }
+                max_u = max(cnt, max_u);
+            }
+            test_c[x].f.up[k-1] = (double)max_u / height;
+
+            //down
+            start = test_c[x].w_start+width*(k-1)/P;
+            end = test_c[x].w_start+width*k/P;
+            for (j = start; j < end; ++j) {
+                for (i = test_c[x].h_end, cnt = 0;
+                        i >= test_c[x].h_start; --i, ++cnt) {
+                    if (test_c[x].im[i][j] == 0)
+                        break;
+                }
+                max_d = max(cnt, max_d);
+            }
+            test_c[x].f.down[k-1] = (double)max_d / height;
+            if (k != 1) {
+                test_c[x].f.left_ratio[k-2] = test_c[x].f.left[k-1]
+                    - test_c[x].f.left[k-2];
+                test_c[x].f.right_ratio[k-2] = test_c[x].f.right[k-1]
+                    - test_c[x].f.right[k-2];
+                test_c[x].f.up_ratio[k-2] = test_c[x].f.up[k-1]
+                    - test_c[x].f.up[k-2];
+                test_c[x].f.down_ratio[k-2] = test_c[x].f.down[k-1]
+                    - test_c[x].f.down[k-2];
+            }
+        }
+        printf("%c:\n", test_c[x].real);
+        for (i = 0; i < P; ++i)
+            printf(" %.2f", test_c[x].f.left[i]);
+        puts("");
+        for (i = 0; i < P; ++i)
+            printf(" %.2f", test_c[x].f.right[i]);
+        puts("");
+        for (i = 0; i < P; ++i)
+            printf(" %.2f", test_c[x].f.up[i]);
+        puts("");
+        for (i = 0; i < P; ++i)
+            printf(" %.2f", test_c[x].f.down[i]);
+        puts("");
+    }
+}
+
 void predict(void)
 {
+    int x, y;
+    int i, j;
+    for (x = 0; x < 11; ++x) {
+        double min = 999999.0;
+        for (y = 0; y < 70; ++y) {
+            double acc = 0.0;
+            if (test_c[x].f.cc_num != train_c[y].f.cc_num)
+                continue;
+            for (i = 0; i < P; ++i)
+                acc += fabs(test_c[x].f.left[i] - train_c[y].f.left[i]);
+            for (i = 0; i < P; ++i)
+                acc += fabs(test_c[x].f.right[i] - train_c[y].f.right[i]);
+            for (i = 0; i < P; ++i)
+                acc += fabs(test_c[x].f.up[i] - train_c[y].f.up[i]);
+            for (i = 0; i < P; ++i)
+                acc += fabs(test_c[x].f.down[i] - train_c[y].f.down[i]);
+
+            for (i = 0; i < P-1; ++i)
+                acc += 2*fabs(test_c[x].f.left_ratio[i]
+                        - train_c[y].f.left_ratio[i]);
+            for (i = 0; i < P-1; ++i)
+                acc += 2*fabs(test_c[x].f.right_ratio[i]
+                        - train_c[y].f.right_ratio[i]);
+            for (i = 0; i < P-1; ++i)
+                acc += 2*fabs(test_c[x].f.up_ratio[i]
+                        - train_c[y].f.up_ratio[i]);
+            for (i = 0; i < P-1; ++i)
+                acc += 2*fabs(test_c[x].f.down_ratio[i]
+                        - train_c[y].f.down_ratio[i]);
+
+            acc += fabs(test_c[x].f.h_w_ratio - train_c[y].f.h_w_ratio);
+
+            if (acc < min) {
+                min = acc;
+                test_c[x].predict = train_c[y].real;
+            }
+        }
+        printf("%c: %c\n", test_c[x].real, test_c[x].predict);
+    }
 }

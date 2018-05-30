@@ -31,11 +31,11 @@ void threshold_filter_tr(unsigned char (*out)[COL_TR],
 /* compare function for qsort */
 int cmp(const void *a, const void *b);
 
-/* seperate testing data */
-void seperate_tt(unsigned char (*in1)[COL], unsigned char (*in2)[COL]);
+/* separate testing data */
+void separate_tt(unsigned char (*in1)[COL], unsigned char (*in2)[COL]);
 
-/* seperate training data */
-void seperate_tr(unsigned char (*in)[COL_TR]);
+/* separate training data */
+void separate_tr(unsigned char (*in)[COL_TR]);
 
 void init(unsigned char (*in1)[COL], unsigned char (*in2)[COL],
         unsigned char (*in3)[COL_TR]);
@@ -136,8 +136,8 @@ int main(void)
 
     threshold_filter_tr(train_pre1, train);
 
-    seperate_tt(s1_pre1, s2_pre3);
-    seperate_tr(train_pre1);
+    separate_tt(s1_pre1, s2_pre3);
+    separate_tr(train_pre1);
     open_and_write(s1_pre1, "s1_box.raw");
     open_and_write(s2_pre3, "s2_box.raw");
     open_and_write_tr(train_pre1, "train_box.raw");
@@ -236,7 +236,7 @@ void threshold_filter_tr(unsigned char (*out)[COL_TR],
     }
 }
 
-void seperate_tt(unsigned char (*in1)[COL], unsigned char (*in2)[COL])
+void separate_tt(unsigned char (*in1)[COL], unsigned char (*in2)[COL])
 {
     int num = 0;
     int flag = 0;
@@ -307,7 +307,7 @@ label2: ;
     }
 }
 
-void seperate_tr(unsigned char (*in)[COL_TR])
+void separate_tr(unsigned char (*in)[COL_TR])
 {
     int slice_num = 0;
     int i, j;
